@@ -9,6 +9,7 @@
 *.json
 output/
 saved_models/
+logs/
 env_test.py
 dkitty_eval.sh
 experiments/
