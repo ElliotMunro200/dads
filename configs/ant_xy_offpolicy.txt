@@ -21,7 +21,7 @@
 --record_freq=100
 --vid_name=skill
 
-# optimization hyperparmaters
+# optimization hyperparameters
 --replay_buffer_capacity=10000
 
 # (set clear_buffer_every_iter=1 for on-policy optimization)
