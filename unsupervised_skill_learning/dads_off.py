@@ -33,6 +33,9 @@ import numpy as np
 import tensorflow as tf
 import tensorflow_probability as tfp
 
+assert tf.test.gpu_device_name(), print("Please install GPU version of TF")
+print('Default GPU Device:{}'.format(tf.test.gpu_device_name()))  
+
 from tf_agents.agents.ddpg import critic_network
 from tf_agents.agents.sac import sac_agent
 from tf_agents.environments import suite_mujoco
