@@ -203,9 +203,11 @@ class DADSAgent(sac_agent.SacAgent):
   # ~ getting a dictionary of shuffled batches of trajectories.  
   def _get_dict(self, trajectories, batch_size=-1):
     tf.nest.assert_same_structure(self.collect_data_spec, trajectories)
+    # ~ on-policy optimization uses a randomly shuffled ordered batch of trajectories of some size less than the full set of trajectories.
     if batch_size > 0:
       shuffled_batch = np.random.permutation(
           trajectories.observation.shape[0])[:batch_size]
+    # ~ off-policy optimization uses the full, non-shuffled ordered set of trajectories. 
     else:
       shuffled_batch = np.arange(trajectories.observation.shape[0])
 
