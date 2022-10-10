@@ -32,7 +32,7 @@ import skill_dynamics
 
 nest = tf.nest
 
-
+# ~ The DADSAgent depends on their SAC Agent, but in theory, this is general to both on and off-policy agents.
 class DADSAgent(sac_agent.SacAgent):
 
   def __init__(self,
@@ -62,6 +62,7 @@ class DADSAgent(sac_agent.SacAgent):
     self._restrict_input_size = restrict_input_size
     self._process_observation = observation_modify_fn
 
+    # ~ A tf.Graph describes the dataflow of a tf model.
     if agent_graph is None:
       self._graph = tf.compat.v1.get_default_graph()
     else:
@@ -86,6 +87,7 @@ class DADSAgent(sac_agent.SacAgent):
     super(DADSAgent, self).__init__(*sac_args, **sac_kwargs)
     self._placeholders_in_place = False
 
+  # ~ computing the intrinsic dads reward  
   def compute_dads_reward(self, input_obs, cur_skill, target_obs):
     if self._process_observation is not None:
       input_obs, target_obs = self._process_observation(
@@ -143,8 +145,10 @@ class DADSAgent(sac_agent.SacAgent):
     intrinsic_reward = np.log(num_reps + 1) - np.log(1 + np.exp(
         np.clip(logp_altz - logp.reshape(1, -1), -50, 50)).sum(axis=0))
 
+    # ~ the final intrinsic reward is returned
     return intrinsic_reward, {'logp': logp, 'logp_altz': logp_altz.flatten()}
 
+  # ~ making some experience placeholder for later use.
   def get_experience_placeholder(self):
     self._placeholders_in_place = True
     self._placeholders = []
@@ -159,24 +163,31 @@ class DADSAgent(sac_agent.SacAgent):
     self._policy_experience_ph = nest.pack_sequence_as(self.collect_data_spec,
                                                        self._placeholders)
     return self._policy_experience_ph
-
+  
+  # ~ building the agent graph, i.e. training pi: 
+  # ~ - making placeholders, using them to train the SAC agent (self.train is general to all tf_agents.agents), updating self.summary_ops.
   def build_agent_graph(self):
     with self._graph.as_default():
       self.get_experience_placeholder()
       self.agent_train_op = self.train(self._policy_experience_ph)
       self.summary_ops = tf.compat.v1.summary.all_v2_summary_ops()
       return self.agent_train_op
-
+  
+  # ~ building the skill dynamics graph, i.e. training q, using skill_dynamics.py.
   def build_skill_dynamics_graph(self):
     self._skill_dynamics.make_placeholders()
     self._skill_dynamics.build_graph()
     self._skill_dynamics.increase_prob_op(
         learning_rate=self._skill_dynamics_learning_rate)
-
+  
+  # ~ creating a place to save the learned dynamics function q.
   def create_savers(self):
     self._skill_dynamics.create_saver(
         save_prefix=os.path.join(self._save_directory, 'dynamics'))
-
+  
+  # ~ setting tf sessions.
+  # ~ sessions allow you to execute a whole or part of a tf.Graph (computations, not executed, but defined by the tf source code). 
+  # ~ sessions execute a tf.Graph by first allocating resources on one or more machines.
   def set_sessions(self, initialize_or_restore_skill_dynamics, session=None):
     if session is not None:
       self._session = session
@@ -189,6 +200,7 @@ class DADSAgent(sac_agent.SacAgent):
   def save_variables(self, global_step):
     self._skill_dynamics.save_variables(global_step=global_step)
 
+  # ~ getting a dictionary of shuffled batches of trajectories.  
   def _get_dict(self, trajectories, batch_size=-1):
     tf.nest.assert_same_structure(self.collect_data_spec, trajectories)
     if batch_size > 0:
@@ -204,6 +216,7 @@ class DADSAgent(sac_agent.SacAgent):
 
     return return_dict
 
+  # ~ run the self.agent_train_op with (re)computed intrinsic rewards for the given number of steps.
   def train_loop(self,
                  trajectories,
                  recompute_reward=False,
