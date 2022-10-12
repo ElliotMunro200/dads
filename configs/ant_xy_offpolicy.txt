@@ -56,7 +56,7 @@
 
 ### SHARED HYPERPARAMETERS ---------------------
 --environment=Ant-v1
---max_env_steps=200
+--max_env_steps=5
 --reduced_observation=2
 
 # define the type of skills being learnt
